@@ -9,10 +9,10 @@ endif ()
 # or if it is the master project.
 if (NOT DEFINED FMT_MASTER_PROJECT)
   set(FMT_MASTER_PROJECT OFF)
-  if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(FMT_MASTER_PROJECT ON)
-    message(STATUS "CMake version: ${CMAKE_VERSION}")
-  endif ()
+#  if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+#    set(FMT_MASTER_PROJECT ON)
+#    message(STATUS "CMake version: ${CMAKE_VERSION}")
+#  endif ()
 endif ()
 
 # Joins arguments and places the results in ${result_var}.
@@ -282,37 +282,62 @@ if (FMT_OS)
   set(FMT_SOURCES ${FMT_SOURCES} src/os.cc)
 endif ()
 
-add_module_library(fmt src/fmt.cc FALLBACK
+#add_module_library(fmt src/fmt.cc FALLBACK
+#                   ${FMT_SOURCES} ${FMT_HEADERS} README.md ChangeLog.md
+#                   IF FMT_MODULE)
+#add_library(fmt::fmt ALIAS fmt)
+add_module_library(fmt.fmt src/fmt.cc FALLBACK
                    ${FMT_SOURCES} ${FMT_HEADERS} README.md ChangeLog.md
                    IF FMT_MODULE)
-add_library(fmt::fmt ALIAS fmt)
+add_library(fmt::fmt ALIAS fmt.fmt)
 if (FMT_MODULE)
-  enable_module(fmt)
+#  enable_module(fmt)
+  enable_module(fmt.fmt)
 endif ()
 
 if (FMT_WERROR)
-  target_compile_options(fmt PRIVATE ${WERROR_FLAG})
+#  target_compile_options(fmt PRIVATE ${WERROR_FLAG})
+  target_compile_options(fmt.fmt PRIVATE ${WERROR_FLAG})
 endif ()
 if (FMT_PEDANTIC)
-  target_compile_options(fmt PRIVATE ${PEDANTIC_COMPILE_FLAGS})
+#  target_compile_options(fmt PRIVATE ${PEDANTIC_COMPILE_FLAGS})
+  target_compile_options(fmt.fmt PRIVATE ${PEDANTIC_COMPILE_FLAGS})
 endif ()
 
 if (cxx_std_11 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-  target_compile_features(fmt PUBLIC cxx_std_11)
+#  target_compile_features(fmt PUBLIC cxx_std_11)
+  target_compile_features(fmt.fmt PUBLIC cxx_std_11)
 else ()
   message(WARNING "Feature cxx_std_11 is unknown for the CXX compiler")
 endif ()
 
-target_include_directories(fmt ${FMT_SYSTEM_HEADERS_ATTRIBUTE} PUBLIC
+#target_include_directories(fmt ${FMT_SYSTEM_HEADERS_ATTRIBUTE} PUBLIC
+#  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+#  $<INSTALL_INTERFACE:${FMT_INC_DIR}>)
+target_include_directories(fmt.fmt ${FMT_SYSTEM_HEADERS_ATTRIBUTE} PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${FMT_INC_DIR}>)
 
 set(FMT_DEBUG_POSTFIX d CACHE STRING "Debug library postfix.")
 
-set_target_properties(fmt PROPERTIES
+#set_target_properties(fmt PROPERTIES
+#  VERSION ${FMT_VERSION} SOVERSION ${CPACK_PACKAGE_VERSION_MAJOR}
+#  PUBLIC_HEADER "${FMT_HEADERS}"
+#  DEBUG_POSTFIX "${FMT_DEBUG_POSTFIX}"
+#
+#  # Workaround for Visual Studio 2017:
+#  # Ensure the .pdb is created with the same name and in the same directory
+#  # as the .lib. Newer VS versions already do this by default, but there is no
+#  # harm in setting it for those too. Ignored by other generators.
+#  COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+#  COMPILE_PDB_NAME "fmt"
+#  COMPILE_PDB_NAME_DEBUG "fmt${FMT_DEBUG_POSTFIX}")
+set_target_properties(fmt.fmt PROPERTIES
   VERSION ${FMT_VERSION} SOVERSION ${CPACK_PACKAGE_VERSION_MAJOR}
   PUBLIC_HEADER "${FMT_HEADERS}"
   DEBUG_POSTFIX "${FMT_DEBUG_POSTFIX}"
+  OUTPUT_NAME fmt
+  EXPORT_NAME fmt
 
   # Workaround for Visual Studio 2017:
   # Ensure the .pdb is created with the same name and in the same directory
@@ -329,20 +354,29 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(FMT_LIB_NAME ${FMT_LIB_NAME}${FMT_DEBUG_POSTFIX})
 endif ()
 
-if (BUILD_SHARED_LIBS)
-  target_compile_definitions(fmt PRIVATE FMT_LIB_EXPORT INTERFACE FMT_SHARED)
-endif ()
+#if (BUILD_SHARED_LIBS)
+#  target_compile_definitions(fmt PRIVATE FMT_LIB_EXPORT INTERFACE FMT_SHARED)
+#endif ()
 if (FMT_SAFE_DURATION_CAST)
-  target_compile_definitions(fmt PUBLIC FMT_SAFE_DURATION_CAST)
+#  target_compile_definitions(fmt PUBLIC FMT_SAFE_DURATION_CAST)
+  target_compile_definitions(fmt.fmt PUBLIC FMT_SAFE_DURATION_CAST)
 endif ()
 
-add_library(fmt-header-only INTERFACE)
-add_library(fmt::fmt-header-only ALIAS fmt-header-only)
+#add_library(fmt-header-only INTERFACE)
+#add_library(fmt::fmt-header-only ALIAS fmt-header-only)
+add_library(fmt.fmt-header-only INTERFACE)
+add_library(fmt::fmt-header-only ALIAS fmt.fmt-header-only)
 
-target_compile_definitions(fmt-header-only INTERFACE FMT_HEADER_ONLY=1)
-target_compile_features(fmt-header-only INTERFACE cxx_std_11)
+#target_compile_definitions(fmt-header-only INTERFACE FMT_HEADER_ONLY=1)
+#target_compile_features(fmt-header-only INTERFACE cxx_std_11)
+target_compile_definitions(fmt.fmt-header-only INTERFACE FMT_HEADER_ONLY=1)
+target_compile_features(fmt.fmt-header-only INTERFACE cxx_std_11)
 
-target_include_directories(fmt-header-only
+#target_include_directories(fmt-header-only
+#  ${FMT_SYSTEM_HEADERS_ATTRIBUTE} INTERFACE
+#  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+#  $<INSTALL_INTERFACE:${FMT_INC_DIR}>)
+target_include_directories(fmt.fmt-header-only
   ${FMT_SYSTEM_HEADERS_ATTRIBUTE} INTERFACE
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${FMT_INC_DIR}>)
@@ -386,7 +420,8 @@ if (FMT_INSTALL)
     ${project_config}
     INSTALL_DESTINATION ${FMT_CMAKE_DIR})
 
-  set(INSTALL_TARGETS fmt fmt-header-only)
+#  set(INSTALL_TARGETS fmt fmt-header-only)
+  set(INSTALL_TARGETS fmt.fmt fmt.fmt-header-only)
 
   # Install the library and headers.
   install(TARGETS ${INSTALL_TARGETS} EXPORT ${targets_export_name}
